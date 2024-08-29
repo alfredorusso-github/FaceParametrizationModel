@@ -11,11 +11,9 @@ from utils.parameters_to_index import parameter_to_index
 import matplotlib.pyplot as plt
 import numpy as np
 
-from PIL import Image
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_to_load = "test_3_nose_param"
-model_to_save = "test_3_nose_param"
+model_to_load = "model_name"
+model_to_save = "model_name"
 
 
 class MHMGenerator(nn.Module):
@@ -41,12 +39,10 @@ class MHMGenerator(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        # Passaggio attraverso i blocchi convoluzionali e di pooling
         x = self.pool1(self.relu(self.conv1(x)))
         x = self.pool2(self.relu(self.conv2(x)))
         x = self.relu(self.conv3(x))
 
-        # Flatten e passaggio attraverso i blocchi completamente connessi
         x = x.view(-1, 128 * 32 * 32)
         x = self.fc1(x)
         x = self.dropout(x)
@@ -149,7 +145,7 @@ def generate_graph_by_area(outputs, target, batch_idx, batch_length, idx, test_l
 
         pred = outputs[idx][params_idx].cpu().numpy()
         real = target[idx][params_idx].cpu().numpy()
-        # Crea un grafico a barre per le previsioni e i valori reali
+
         fig, ax = plt.subplots()
         index = np.arange(len(params_idx))
         bar_width = 0.3
@@ -167,7 +163,7 @@ def generate_graph_by_area(outputs, target, batch_idx, batch_length, idx, test_l
 
         plt.xlabel('Parameters')
         plt.ylabel('Values')
-        plt.title('Comparations between prediction and real values')
+        
         plt.xticks(index + bar_width, params_list, fontsize='small', rotation=90)
         plt.legend()
         plt.tight_layout()
@@ -175,7 +171,6 @@ def generate_graph_by_area(outputs, target, batch_idx, batch_length, idx, test_l
         if not os.path.exists(f'../graphs/{model_to_save}'):
             os.makedirs(f'../graphs/{model_to_save}')
 
-        # print(f'Saving graph {area_name} number {batch_idx * batch_length + idx}')
         plt.savefig(f'../graphs/{model_to_save}/{area_name}/graph_element_{area_name}_{batch_idx * batch_length + idx}')
         plt.close(fig)
 
@@ -188,7 +183,6 @@ def generate_graph(outputs, target, batch_idx, batch_length, idx, test_loader):
     pred = outputs[idx][selected_parameters_indexes].cpu().numpy()
     real = target[idx][selected_parameters_indexes].cpu().numpy()
 
-    # Crea un grafico a barre per le previsioni e i valori reali
     fig, ax = plt.subplots()
     index = np.arange(len(selected_parameters))
     bar_width = 0.3
@@ -206,7 +200,7 @@ def generate_graph(outputs, target, batch_idx, batch_length, idx, test_loader):
 
     plt.xlabel('Parameters')
     plt.ylabel('Values')
-    plt.title('Comparations between prediction and real values')
+    # plt.title('Comparison between predicted and real values')
     plt.xticks(index + bar_width, selected_parameters, fontsize='small', rotation=90)
     plt.legend()
 
@@ -247,7 +241,7 @@ if __name__ == '__main__':
     start = time.time()
 
     model = MHMGenerator().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 
     if os.path.isfile(f'../models/{model_to_load}.pth'):
         checkpoint = torch.load(f'../models/{model_to_load}.pth')
@@ -259,13 +253,13 @@ if __name__ == '__main__':
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    train_dataset = MHMDataset(root_dir='/home/alfredo/Documenti/dataset/', type='train', transform=transform)
+    train_dataset = MHMDataset(root_dir='dataset_position', type='train', transform=transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=True)
 
-    validation_dataset = MHMDataset(root_dir='/home/alfredo/Documenti/dataset/', type='validation', transform=transform)
+    validation_dataset = MHMDataset(root_dir='dataset_position', type='validation', transform=transform)
     validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=128, shuffle=True)
 
-    test_dataset = MHMDataset(root_dir='/home/alfredo/Documenti/dataset/', type='test', transform=transform)
+    test_dataset = MHMDataset(root_dir='dataset_position', type='test', transform=transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, shuffle=True)
 
     loss_fn = nn.MSELoss()
@@ -273,7 +267,7 @@ if __name__ == '__main__':
     train_errors = []
     val_errors = []
 
-    early_stopping = EarlyStopping(patience=10, delta=0.0001)
+    early_stopping = EarlyStopping(patience=10, delta=0.00001)
     try:
         for epoch in range(5000):
             train_loss = train_one_epoch(model, train_loader, optimizer, loss_fn, epoch)

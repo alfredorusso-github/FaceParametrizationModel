@@ -91,6 +91,33 @@ def remove_useless_parameters(file_path):
     f.close()
 
 
+def remove_not_involved_parameters(file_path, info_path):
+    info_file = open(info_path, 'r')
+
+    params = []
+
+    for line in info_file.readlines()[1:]:
+        params.append(line[:-1])
+
+    info_file.close()
+
+    file = open(file_path, 'r')
+    lines = []
+    for line in file.readlines():
+        if not line.startswith('modifier'):
+            lines.append(line)
+        else:
+            if line.split(' ')[1].startswith('macrodetails') or line.split(' ')[1] in params:
+                lines.append(line)
+
+    file.close()
+
+    file = open(file_path, 'w')
+    for line in lines:
+        file.write(line)
+    file.close()
+
+
 def process_images(path, mhm_model, transform):
     mhm_model.eval()
 
@@ -108,15 +135,16 @@ def process_images(path, mhm_model, transform):
 
             name = f"predicted_{file[:-4]}.mhm"
             remove_useless_parameters(os.path.join(path, name))
+            remove_not_involved_parameters(os.path.join(path, name), os.path.join(path, 'info.csv'))
 
 
 if __name__ == '__main__':
     mhm_model = MHMGenerator().to(device)
-    checkpoint = torch.load('../models/model_random_25_75.pth')
+    checkpoint = torch.load('../models/model_gradual.pth')
     mhm_model.load_state_dict(checkpoint['model_state_dict'])
     # summary(mhm_model, input_size=(3, 128, 128))
 
-    images_path = '/home/alfredo/Scaricati/Re R R Appuntamento di oggi/test_model/'
+    images_path = '/home/alfredo/Immagini/results/gradual 2/'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
